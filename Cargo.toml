@@ -1,0 +1,7 @@
+[package]
+name = "sixel-image"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sixel-tokenizer = { path = "../sixel-tokenizer" }
