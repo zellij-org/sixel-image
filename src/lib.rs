@@ -38,10 +38,17 @@ impl SixelImage {
         let serialized_image = sixel_serializer.serialize();
         serialized_image
     }
-    pub fn serialize_range(&self, start_x_index: usize, start_y_index: usize, end_x_index: usize, end_y_index: usize) -> String {
+    pub fn serialize_range(&self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) -> String {
         let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels);
-        let serialized_image = sixel_serializer.serialize_range(start_x_index, start_y_index, end_x_index, end_y_index);
+        let serialized_image = sixel_serializer.serialize_range(start_x_index, start_y_index, width, height);
         serialized_image
+    }
+    pub fn cut_out(&mut self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) {
+        for row in self.pixels.iter_mut().skip(start_y_index).take(height) {
+            for pixel in row.iter_mut().skip(start_x_index).take(width) {
+                pixel.on = false;
+            }
+        }
     }
 }
 
