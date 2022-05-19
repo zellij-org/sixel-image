@@ -11,6 +11,8 @@ pub struct SixelDeserializer {
     sixel_cursor_y: usize,
     sixel_cursor_x: usize,
     pixels: Vec<Vec<Pixel>>,
+    max_height: Option<usize>,
+    stop_parsing: bool,
 }
 
 impl SixelDeserializer {
@@ -21,7 +23,13 @@ impl SixelDeserializer {
             sixel_cursor_y: 0,
             sixel_cursor_x: 0,
             pixels: vec![vec![]], // start with one empty line
+            max_height: None,
+            stop_parsing: false,
         }
+    }
+    pub fn max_height(mut self, max_height: usize) -> Self {
+        self.max_height = Some(max_height);
+        self
     }
     pub fn create_image(&mut self) -> SixelImage {
         let pixels = std::mem::take(&mut self.pixels);
@@ -32,6 +40,9 @@ impl SixelDeserializer {
         }
     }
     pub fn handle_event(&mut self, event: SixelEvent) -> Result<(), &'static str> {
+        if self.stop_parsing {
+            return Ok(());
+        }
         match event {
             SixelEvent::ColorIntroducer { color_coordinate_system, color_number } => {
                 match color_coordinate_system {
@@ -72,6 +83,12 @@ impl SixelDeserializer {
                 self.sixel_cursor_x = 0;
             }
             SixelEvent::GotoNextLine => {
+                if let Some(max_height) = self.max_height {
+                    if self.sixel_cursor_y + 12 > max_height { // 12 because we move the cursor to the top of the sixel column and need to count 6 more down to make sure we don't exceed
+                        self.stop_parsing = true;
+                        return Ok(());
+                    }
+                }
                 self.sixel_cursor_y += 6;
                 self.sixel_cursor_x = 0;
             }

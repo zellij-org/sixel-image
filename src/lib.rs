@@ -28,6 +28,19 @@ impl SixelImage {
         let sixel_image = sixel_deserializer.create_image();
         Ok(sixel_image)
     }
+    pub fn new_with_max_height(bytes: &[u8], max_height: usize) -> Result<Self, &'static str> {
+        let mut parser = Parser::new();
+        let mut sixel_deserializer = SixelDeserializer::new().max_height(max_height);
+        for byte in bytes {
+            let mut handle_result = Ok(());
+            parser.advance(&byte, |sixel_event| {
+                handle_result = sixel_deserializer.handle_event(sixel_event);
+            });
+            handle_result?
+        }
+        let sixel_image = sixel_deserializer.create_image();
+        Ok(sixel_image)
+    }
     pub fn pixel_size(&self) -> (usize, usize) { // (height, width) in pixels
         let width = self.pixels.first().map(|first_line| first_line.len()).unwrap_or(0);
         let height = self.pixels.len();
