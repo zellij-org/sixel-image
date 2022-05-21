@@ -129,7 +129,7 @@ impl SixelDeserializer {
             pixel_line_index_in_sixel += 1;
         }
     }
-    fn pad_lines_horizontally(&mut self, pad_until: usize) {
+    fn pad_lines_vertically(&mut self, pad_until: usize) {
         let empty_pixel = Pixel {
             on: true,
             color: self.current_color
@@ -141,7 +141,7 @@ impl SixelDeserializer {
             self.pixels.extend(line_padding);
         }
     }
-    fn pad_lines_vertically(&mut self, pad_until: usize) {
+    fn pad_lines_horizontally(&mut self, pad_until: usize) {
         let empty_pixel = Pixel {
             on: true,
             color: self.current_color
