@@ -232,3 +232,16 @@ fn image_max_height() {
     let serialized_image = sixel_image.serialize();
     assert_eq!(serialized_image, remove_whitespace(&expected));
 }
+
+#[test]
+fn corrupted_image() {
+    // notice this sample does not start with a DCS event
+    let sample = "
+        #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0
+        #1~~@@vv@@~~@@~~$
+        #2??}}GG}}??}}??-
+        #1!14@
+        \u{1b}\\
+    ";
+    assert!(SixelImage::new(sample.as_bytes()).is_err());
+}

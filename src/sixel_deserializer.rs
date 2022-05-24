@@ -13,6 +13,7 @@ pub struct SixelDeserializer {
     pixels: Vec<Vec<Pixel>>,
     max_height: Option<usize>,
     stop_parsing: bool,
+    got_dcs: bool,
 }
 
 impl SixelDeserializer {
@@ -25,21 +26,28 @@ impl SixelDeserializer {
             pixels: vec![vec![]], // start with one empty line
             max_height: None,
             stop_parsing: false,
+            got_dcs: false,
         }
     }
     pub fn max_height(mut self, max_height: usize) -> Self {
         self.max_height = Some(max_height);
         self
     }
-    pub fn create_image(&mut self) -> SixelImage {
+    pub fn create_image(&mut self) -> Result<SixelImage, &'static str> {
+        if !self.got_dcs {
+            return Err("Corrupted image sequence");
+        }
         let pixels = std::mem::take(&mut self.pixels);
         let color_registers = std::mem::take(&mut self.color_registers);
-        SixelImage {
+        Ok(SixelImage {
             pixels,
             color_registers,
-        }
+        })
     }
     pub fn handle_event(&mut self, event: SixelEvent) -> Result<(), &'static str> {
+        if !self.got_dcs && !matches!(event, SixelEvent::Dcs { .. }) {
+            return Err("Corrupted image sequence");
+        }
         if self.stop_parsing {
             return Ok(());
         }
@@ -77,7 +85,7 @@ impl SixelDeserializer {
                 self.sixel_cursor_x += repeat_count;
             }
             SixelEvent::Dcs { macro_parameter: _, inverse_background: _, horizontal_pixel_distance: _ } => {
-                // noop
+                self.got_dcs = true;
             }
             SixelEvent::GotoBeginningOfLine => {
                 self.sixel_cursor_x = 0;
@@ -95,9 +103,7 @@ impl SixelDeserializer {
             SixelEvent::UnknownSequence(_) => {
                 return Err("Corrupted Sixel sequence");
             }
-            SixelEvent::End => {
-
-            }
+            SixelEvent::End => {}
         }
         Ok(())
     }

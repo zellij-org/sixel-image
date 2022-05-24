@@ -26,7 +26,7 @@ impl SixelImage {
             handle_result?
         }
         let sixel_image = sixel_deserializer.create_image();
-        Ok(sixel_image)
+        sixel_image
     }
     pub fn new_with_max_height(bytes: &[u8], max_height: usize) -> Result<Self, &'static str> {
         let mut parser = Parser::new();
@@ -39,7 +39,7 @@ impl SixelImage {
             handle_result?
         }
         let sixel_image = sixel_deserializer.create_image();
-        Ok(sixel_image)
+        sixel_image
     }
     pub fn pixel_size(&self) -> (usize, usize) { // (height, width) in pixels
         let width = self.pixels.first().map(|first_line| first_line.len()).unwrap_or(0);
