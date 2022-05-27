@@ -3,12 +3,12 @@ use std::collections::{HashMap, BTreeMap};
 use crate::{SixelColor, Pixel};
 
 pub struct SixelSerializer <'a>{
-    color_registers: &'a BTreeMap<u8, SixelColor>,
+    color_registers: &'a BTreeMap<u16, SixelColor>,
     pixels: &'a Vec<Vec<Pixel>>,
 }
 
 impl <'a>SixelSerializer <'a>{
-    pub fn new(color_registers: &'a BTreeMap<u8, SixelColor>, pixels: &'a Vec<Vec<Pixel>>) -> Self {
+    pub fn new(color_registers: &'a BTreeMap<u16, SixelColor>, pixels: &'a Vec<Vec<Pixel>>) -> Self {
         SixelSerializer {
             color_registers,
             pixels
@@ -50,7 +50,7 @@ impl <'a>SixelSerializer <'a>{
         let max_y_index = height.map(|height| (start_y_index + height).saturating_sub(1));
         let mut current_line_index = start_y_index;
         let mut current_column_index = start_x_index;
-        let mut color_index_to_sixel_data_string: BTreeMap<u8, String> = BTreeMap::new();
+        let mut color_index_to_sixel_data_string: BTreeMap<u16, String> = BTreeMap::new();
         let max_lines = std::cmp::min(
             height.unwrap_or(self.pixels.len()),
             self.pixels.len(),
@@ -97,7 +97,7 @@ impl <'a>SixelSerializer <'a>{
 }
 
 struct SixelColumn {
-    color_index_to_byte: HashMap<u8, u8>,
+    color_index_to_byte: HashMap<u16, u8>,
 }
 
 impl SixelColumn {
@@ -150,7 +150,7 @@ impl SixelColumn {
     }
     fn serialize(
         &mut self,
-        color_index_to_character_string: &mut BTreeMap<u8, String>,
+        color_index_to_character_string: &mut BTreeMap<u16, String>,
         current_index: usize,
     ) {
         for (color_index, char_representation) in self.color_index_to_byte.iter_mut() {
@@ -183,7 +183,7 @@ impl <'a>SixelLine <'a>{
             })
         }
     }
-    pub fn serialize(&mut self, color_index_to_character_string: &'a mut BTreeMap<u8, String>) {
+    pub fn serialize(&mut self, color_index_to_character_string: &'a mut BTreeMap<u16, String>) {
         let mut is_first = true;
         if self.relative_line_index != 0 {
             self.append_to.push('-');
@@ -231,7 +231,7 @@ impl <'a>SixelLine <'a>{
             current_character.unwrap(),
         );
     }
-    fn serialize_color_introducer(&mut self, color_index: &u8) {
+    fn serialize_color_introducer(&mut self, color_index: &u16) {
         self.append_to.push_str(&format!("#{}", color_index));
     }
     fn pad_sixel_string(&self, sixel_chars: &mut String, desired_length: usize) {

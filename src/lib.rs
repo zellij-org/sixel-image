@@ -10,7 +10,7 @@ use sixel_tokenizer::{ColorCoordinateSystem, Parser};
 
 #[derive(Debug, Clone)]
 pub struct SixelImage {
-    color_registers: BTreeMap<u8, SixelColor>,
+    color_registers: BTreeMap<u16, SixelColor>,
     pixels: Vec<Vec<Pixel>>,
 }
 
@@ -68,7 +68,7 @@ impl SixelImage {
 #[derive(Clone, Copy)]
 pub struct Pixel {
     on: bool,
-    color: u8, 
+    color: u16, 
 }
 
 impl fmt::Debug for Pixel {

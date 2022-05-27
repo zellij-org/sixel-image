@@ -6,8 +6,8 @@ use crate::{SixelColor, SixelImage, Pixel};
 
 #[derive(Debug, Clone)]
 pub struct SixelDeserializer {
-    color_registers: BTreeMap<u8, SixelColor>,
-    current_color: u8,
+    color_registers: BTreeMap<u16, SixelColor>,
+    current_color: u16,
     sixel_cursor_y: usize,
     sixel_cursor_x: usize,
     pixels: Vec<Vec<Pixel>>,
