@@ -88,9 +88,9 @@ impl SixelDeserializer {
                 self.add_sixel_byte(byte_to_repeat, repeat_count);
                 self.sixel_cursor_x += repeat_count;
             }
-            SixelEvent::Dcs { macro_parameter: _, inverse_background, horizontal_pixel_distance: _ } => {
+            SixelEvent::Dcs { macro_parameter: _, transparent_background, horizontal_pixel_distance: _ } => {
                 self.got_dcs = true;
-                if inverse_background == Some(1) {
+                if transparent_background == Some(1) {
                     self.transparent_background = true;
                 }
             }
