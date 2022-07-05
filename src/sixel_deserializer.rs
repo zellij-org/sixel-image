@@ -14,6 +14,7 @@ pub struct SixelDeserializer {
     max_height: Option<usize>,
     stop_parsing: bool,
     got_dcs: bool,
+    transparent_background: bool,
 }
 
 impl SixelDeserializer {
@@ -27,6 +28,7 @@ impl SixelDeserializer {
             max_height: None,
             stop_parsing: false,
             got_dcs: false,
+            transparent_background: false,
         }
     }
     pub fn max_height(mut self, max_height: usize) -> Self {
@@ -67,11 +69,13 @@ impl SixelDeserializer {
             }
             SixelEvent::RasterAttribute { pan: _, pad: _, ph, pv } => {
                 // we ignore pan/pad because (reportedly) no-one uses them
-                if let Some(pv) = pv {
-                    self.pad_lines_vertically(pv);
-                }
-                if let Some(ph) = ph {
-                    self.pad_lines_horizontally(ph);
+                if !self.transparent_background {
+                    if let Some(pv) = pv {
+                        self.pad_lines_vertically(pv);
+                    }
+                    if let Some(ph) = ph {
+                        self.pad_lines_horizontally(ph);
+                    }
                 }
             }
             SixelEvent::Data { byte } => {
@@ -84,8 +88,11 @@ impl SixelDeserializer {
                 self.add_sixel_byte(byte_to_repeat, repeat_count);
                 self.sixel_cursor_x += repeat_count;
             }
-            SixelEvent::Dcs { macro_parameter: _, inverse_background: _, horizontal_pixel_distance: _ } => {
+            SixelEvent::Dcs { macro_parameter: _, inverse_background, horizontal_pixel_distance: _ } => {
                 self.got_dcs = true;
+                if inverse_background == Some(1) {
+                    self.transparent_background = true;
+                }
             }
             SixelEvent::GotoBeginningOfLine => {
                 self.sixel_cursor_x = 0;

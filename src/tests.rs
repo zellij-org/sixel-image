@@ -39,6 +39,21 @@ fn pad_image_with_raster_attribute() {
 }
 
 #[test]
+fn dont_pad_image_with_transparent_background() {
+    let sample = "
+        \u{1b}P0;1q
+        \"1;1;10;10
+        \u{1b}\\
+    ";
+    let expected = "\u{1b}Pq\u{1b}\\";
+    let sixel_image = SixelImage::new(sample.as_bytes());
+    let image = sixel_image.unwrap();
+    let serialized_image = image.serialize();
+    assert_eq!(image.pixel_size(), (1, 0));
+    assert_eq!(serialized_image, expected);
+}
+
+#[test]
 fn full_256_colors() {
     let mut sample = String::from("\u{1b}Pq");
     for i in 0..256 {
