@@ -31,10 +31,13 @@ impl SixelDeserializer {
             transparent_background: false,
         }
     }
+    /// Provide a `max_height` value in pixels, all pixels beyond this max height will not be
+    /// parsed
     pub fn max_height(mut self, max_height: usize) -> Self {
         self.max_height = Some(max_height);
         self
     }
+    /// Create a new [`SixelImage`] out of the existing state and consume it.
     pub fn create_image(&mut self) -> Result<SixelImage, &'static str> {
         if !self.got_dcs {
             return Err("Corrupted image sequence");
@@ -46,6 +49,7 @@ impl SixelDeserializer {
             color_registers,
         })
     }
+    /// Handle a [`SixelEvent`], changing the internal state to match
     pub fn handle_event(&mut self, event: SixelEvent) -> Result<(), &'static str> {
         if !self.got_dcs && !matches!(event, SixelEvent::Dcs { .. }) {
             return Err("Corrupted image sequence");

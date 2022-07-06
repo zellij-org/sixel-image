@@ -225,30 +225,6 @@ fn cut_out_from_image() {
 }
 
 #[test]
-fn image_max_height() {
-    let sample = "
-        \u{1b}Pq
-        #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0
-        #1~~@@vv@@~~@@~~$
-        #2??}}GG}}??}}??-
-        #1!14@
-        \u{1b}\\
-    ";
-    let expected = "
-        \u{1b}Pq
-        #0;2;0;0;0
-        #1;2;100;100;0
-        #2;2;0;100;0
-        #1~~@@vv@@~~@@~~$
-        #2??}}GG}}??}}??
-        \u{1b}\\
-    ";
-    let sixel_image = SixelImage::new_with_max_height(sample.as_bytes(), 7).unwrap();
-    let serialized_image = sixel_image.serialize();
-    assert_eq!(serialized_image, remove_whitespace(&expected));
-}
-
-#[test]
 fn corrupted_image() {
     // notice this sample does not start with a DCS event
     let sample = "
