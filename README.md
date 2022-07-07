@@ -1,6 +1,6 @@
 # sixel-image
 
-This library provides an interface for querying, manipulating and serializing sixel data.
+This library provides an interface for querying, manipulating and serializing/deserializing sixel data.
 
 There are several methods provided here to do this:
 

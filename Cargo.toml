@@ -1,7 +1,11 @@
 [package]
 name = "sixel-image"
+description = "An interface for querying, manipulating and serializing/deserializing Sixel data"
+authors = ["Aram Drevekenin <aram@poor.dev>"]
+license = "MIT"
+repository = "https://github.com/zellij-org/sixel-image"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sixel-tokenizer = { path = "../sixel-tokenizer" }
+sixel-tokenizer = "0.1.0"
