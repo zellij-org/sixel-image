@@ -59,3 +59,6 @@ fn main() {
     println!("{:?}", serialized);
 }
 ```
+
+# License
+MIT
