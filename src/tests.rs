@@ -243,7 +243,7 @@ fn img_to_sixel() {
         image::Rgba([
             ((x + 128) % u8::MAX as u32) as u8,
             ((y + 128) % u8::MAX as u32) as u8,
-            (u8::MAX / 2) as u8,
+            u8::MAX / 2,
             255,
         ])
     });
