@@ -91,6 +91,17 @@ pub struct Pixel {
     color: u16, 
 }
 
+impl Pixel {
+    pub fn new(color: u16) -> Self {
+        Pixel { on: true, color }
+    }
+
+    pub const OFF: Pixel = Pixel {
+        on: false,
+        color: 0,
+    };
+}
+
 impl fmt::Debug for Pixel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.on {

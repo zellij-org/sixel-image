@@ -9,3 +9,8 @@ edition = "2021"
 
 [dependencies]
 sixel-tokenizer = "0.1.0"
+
+[dev-dependencies]
+image = "0.24.5"
+itertools = "0.10.5"
+

@@ -1,4 +1,4 @@
-use crate::SixelImage;
+use crate::{Pixel, SixelColor, SixelImage, SixelSerializer};
 
 fn remove_whitespace(s: &str) -> String {
     let mut s = s.to_string();
@@ -235,4 +235,59 @@ fn corrupted_image() {
         \u{1b}\\
     ";
     assert!(SixelImage::new(sample.as_bytes()).is_err());
+}
+
+#[test]
+fn img_to_sixel() {
+    let img = image::RgbaImage::from_fn(64, 64, |x, y| {
+        image::Rgba([
+            ((x + 128) % u8::MAX as u32) as u8,
+            ((y + 128) % u8::MAX as u32) as u8,
+            u8::MAX / 2,
+            255,
+        ])
+    });
+    println!("{}", render_sixel(&img)); // run with `cargo test -- --nocapture` to see the output
+}
+
+fn render_sixel(img: &image::RgbaImage) -> String {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+
+    use itertools::Itertools;
+
+    let colors: HashMap<[u8; 3], u16> = img
+        .pixels()
+        .map(|p| [p[0], p[1], p[2]].map(compress))
+        .collect::<HashSet<[u8; 3]>>() // dedup
+        .into_iter()
+        .enumerate()
+        .map(|(i, c)| (c, wrapping_into(i)))
+        .collect();
+
+    let color_registers: BTreeMap<u16, SixelColor> = colors
+        .iter()
+        .map(|(&c, &i)| (i, SixelColor::Rgb(c[0], c[1], c[2])))
+        .collect();
+
+    let pixels: Vec<Vec<Pixel>> = img
+        .pixels()
+        .map(|p| {
+            let c = [p[0], p[1], p[2]].map(compress);
+            Pixel::new(colors[&c])
+        })
+        .chunks(img.width() as usize)
+        .into_iter()
+        .map(|c| c.collect())
+        .collect();
+
+    SixelSerializer::new(&color_registers, &pixels).serialize()
+}
+
+fn wrapping_into(u: usize) -> u16 {
+    (u % u16::MAX as usize) as u16
+}
+
+/// compress a color value from the range [0, 255] to the range [0, 100]
+fn compress(a: u8) -> u8 {
+    (a as u16 * 100 / 255) as u8
 }
