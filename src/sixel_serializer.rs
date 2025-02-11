@@ -31,7 +31,7 @@ impl <'a>SixelSerializer <'a>{
         serialized_image
     }
     fn serialize_empty_dcs(&self, mut append_to: String) -> String {
-        append_to.push_str("\u{1b}Pq");
+        append_to.push_str("\u{1b}P9;1q");
         append_to
     }
     fn serialize_color_registers(&self, mut append_to: String) -> String {
