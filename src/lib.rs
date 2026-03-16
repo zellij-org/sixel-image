@@ -35,10 +35,10 @@ use std::fmt;
 
 #[derive(Debug, Clone)]
 pub struct SixelImage {
+    pub color_registers: BTreeMap<u16, SixelColor>,
+    pub pixels: Vec<Vec<Pixel>>,
     dcs: DCS,
     ra: Option<RA>,
-    color_registers: BTreeMap<u16, SixelColor>,
-    pixels: Vec<Vec<Pixel>>,
 }
 
 #[derive(Debug, Clone)]
@@ -132,8 +132,8 @@ impl SixelImage {
 
 #[derive(Clone, Copy)]
 pub struct Pixel {
-    on: bool,
-    color: u16,
+    pub on: bool,
+    pub color: u16,
 }
 
 impl fmt::Debug for Pixel {
