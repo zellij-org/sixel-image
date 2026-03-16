@@ -6,12 +6,12 @@
 //! 2. If you'd like to parse bytes in real time "on the wire", use [`SixelDeserializer`]
 //!
 //! # Example
-//! ```rust
+//! ```no_run
 //! use std::io::Read;
 //! use std::io::BufReader;
 //! use std::fs::File;
 //! use sixel_image::SixelImage;
-//! 
+//!
 //! fn main() {
 //!     let f = File::open("/home/aram/Downloads/lady-of-shalott.six").unwrap();
 //!     let mut reader = BufReader::new(f);
@@ -23,20 +23,45 @@
 //! }
 //! ```
 
-mod sixel_serializer;
 mod sixel_deserializer;
+mod sixel_serializer;
 
-pub use sixel_serializer::SixelSerializer;
 pub use sixel_deserializer::SixelDeserializer;
+pub use sixel_serializer::SixelSerializer;
 
-use std::fmt;
-use std::collections::BTreeMap;
 use sixel_tokenizer::{ColorCoordinateSystem, Parser};
+use std::collections::BTreeMap;
+use std::fmt;
 
 #[derive(Debug, Clone)]
 pub struct SixelImage {
     pub color_registers: BTreeMap<u16, SixelColor>,
     pub pixels: Vec<Vec<Pixel>>,
+    dcs: DCS,
+    ra: Option<RA>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DCS {
+    macro_parameter: u8,
+    transparent_bg: bool,
+}
+
+impl Default for DCS {
+    fn default() -> Self {
+        DCS {
+            macro_parameter: 0,
+            transparent_bg: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RA {
+    pan: usize,
+    pad: usize,
+    ph: Option<usize>,
+    pv: Option<usize>,
 }
 
 impl SixelImage {
@@ -55,28 +80,48 @@ impl SixelImage {
         sixel_image
     }
     /// Returns the (height, width) of the image in pixels
-    pub fn pixel_size(&self) -> (usize, usize) { // (height, width) in pixels
-        let width = self.pixels.first().map(|first_line| first_line.len()).unwrap_or(0);
+    pub fn pixel_size(&self) -> (usize, usize) {
+        // (height, width) in pixels
+        let width = self
+            .pixels
+            .first()
+            .map(|first_line| first_line.len())
+            .unwrap_or(0);
         let height = self.pixels.len();
         (height, width)
     }
     /// Serializes the whole image, returning a stringified sixel representation of it
     pub fn serialize(&self) -> String {
-        let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels);
+        let sixel_serializer =
+            SixelSerializer::new(&self.dcs, &self.ra, &self.color_registers, &self.pixels);
         let serialized_image = sixel_serializer.serialize();
         serialized_image
     }
     /// Serializes a specific rectangle of this image without manipulating the image itself, x/y
     /// coordinates as well as width height are in pixels
-    pub fn serialize_range(&self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) -> String {
-        let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels);
-        let serialized_image = sixel_serializer.serialize_range(start_x_index, start_y_index, width, height);
+    pub fn serialize_range(
+        &self,
+        start_x_index: usize,
+        start_y_index: usize,
+        width: usize,
+        height: usize,
+    ) -> String {
+        let sixel_serializer =
+            SixelSerializer::new(&self.dcs, &self.ra, &self.color_registers, &self.pixels);
+        let serialized_image =
+            sixel_serializer.serialize_range(start_x_index, start_y_index, width, height);
         serialized_image
     }
     /// Manipulates the image in-place, cutting out a rectangle with the specified coordinates. If
     /// the rectangle exceeds the image, it will be partially cut out. All x/y and width/height
     /// coordinates are in pixels
-    pub fn cut_out(&mut self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) {
+    pub fn cut_out(
+        &mut self,
+        start_x_index: usize,
+        start_y_index: usize,
+        width: usize,
+        height: usize,
+    ) {
         for row in self.pixels.iter_mut().skip(start_y_index).take(height) {
             for pixel in row.iter_mut().skip(start_x_index).take(width) {
                 pixel.on = false;
@@ -103,7 +148,7 @@ impl fmt::Debug for Pixel {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SixelColor {
-    Rgb(u8, u8, u8), // 0-100
+    Rgb(u8, u8, u8),  // 0-100
     Hsl(u16, u8, u8), // 0-360, 0-100, 0-100
 }
 
