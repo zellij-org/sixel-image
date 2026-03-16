@@ -1,21 +1,26 @@
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap, HashMap};
 
 use crate::{Pixel, SixelColor, DCS, RA};
 
-pub struct SixelSerializer <'a>{
+pub struct SixelSerializer<'a> {
     dcs: &'a DCS,
     ra: &'a Option<RA>,
     color_registers: &'a BTreeMap<u16, SixelColor>,
     pixels: &'a Vec<Vec<Pixel>>,
 }
 
-impl <'a>SixelSerializer <'a>{
-    pub fn new(dcs: &'a DCS, ra: &'a Option<RA>, color_registers: &'a BTreeMap<u16, SixelColor>, pixels: &'a Vec<Vec<Pixel>>) -> Self {
+impl<'a> SixelSerializer<'a> {
+    pub fn new(
+        dcs: &'a DCS,
+        ra: &'a Option<RA>,
+        color_registers: &'a BTreeMap<u16, SixelColor>,
+        pixels: &'a Vec<Vec<Pixel>>,
+    ) -> Self {
         SixelSerializer {
             dcs,
             ra,
             color_registers,
-            pixels
+            pixels,
         }
     }
     pub fn serialize(&self) -> String {
@@ -27,25 +32,47 @@ impl <'a>SixelSerializer <'a>{
         let serialized_image = self.serialize_end_event(serialized_image);
         serialized_image
     }
-    pub fn serialize_range(&self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) -> String {
+    pub fn serialize_range(
+        &self,
+        start_x_index: usize,
+        start_y_index: usize,
+        width: usize,
+        height: usize,
+    ) -> String {
         let serialized_image = String::new();
         let serialized_image = self.serialize_dcs(serialized_image);
         let serialized_image = self.serialize_ra(serialized_image);
         let serialized_image = self.serialize_color_registers(serialized_image);
-        let serialized_image = self.serialize_pixels(serialized_image, Some(start_x_index), Some(start_y_index), Some(width), Some(height));
+        let serialized_image = self.serialize_pixels(
+            serialized_image,
+            Some(start_x_index),
+            Some(start_y_index),
+            Some(width),
+            Some(height),
+        );
         let serialized_image = self.serialize_end_event(serialized_image);
         serialized_image
     }
     fn serialize_dcs(&self, mut append_to: String) -> String {
-        append_to.push_str(&format!("\u{1b}P{mp};{bg};0q", mp = self.dcs.macro_parameter, bg = if self.dcs.transparent_bg {1} else {0}));
+        append_to.push_str(&format!(
+            "\u{1b}P{mp};{bg};0q",
+            mp = self.dcs.macro_parameter,
+            bg = if self.dcs.transparent_bg { 1 } else { 0 }
+        ));
         append_to
     }
     fn serialize_ra(&self, mut append_to: String) -> String {
         if let Some(ra) = self.ra {
             if let (Some(ph), Some(pv)) = (ra.ph, ra.pv) {
-                append_to.push_str(&format!("\"{pan};{pad};{ph};{pv}", pan = ra.pan, pad = ra.pad, ph = ph, pv = pv));
+                append_to.push_str(&format!(
+                    "\"{pan};{pad};{ph};{pv}",
+                    pan = ra.pan,
+                    pad = ra.pad,
+                    ph = ph,
+                    pv = pv
+                ));
             } else {
-                append_to.push_str(&format!("\"{pan};{pad};", pan = ra.pan, pad = ra.pad));   
+                append_to.push_str(&format!("\"{pan};{pad};", pan = ra.pan, pad = ra.pad));
             }
         }
         append_to
@@ -53,13 +80,24 @@ impl <'a>SixelSerializer <'a>{
     fn serialize_color_registers(&self, mut append_to: String) -> String {
         for (color_register, sixel_color_code) in &*self.color_registers {
             match sixel_color_code {
-                SixelColor::Hsl(x, y, z) => append_to.push_str(&format!("#{};1;{};{};{}", color_register, x, y, z)),
-                SixelColor::Rgb(x, y, z) => append_to.push_str(&format!("#{};2;{};{};{}", color_register, x, y, z)),
+                SixelColor::Hsl(x, y, z) => {
+                    append_to.push_str(&format!("#{};1;{};{};{}", color_register, x, y, z))
+                }
+                SixelColor::Rgb(x, y, z) => {
+                    append_to.push_str(&format!("#{};2;{};{};{}", color_register, x, y, z))
+                }
             }
         }
         append_to
     }
-    fn serialize_pixels(&self, mut append_to: String, start_x_index: Option<usize>, start_y_index: Option<usize>, width: Option<usize>, height: Option<usize>) -> String {
+    fn serialize_pixels(
+        &self,
+        mut append_to: String,
+        start_x_index: Option<usize>,
+        start_y_index: Option<usize>,
+        width: Option<usize>,
+        height: Option<usize>,
+    ) -> String {
         let start_y_index = start_y_index.unwrap_or(0);
         let start_x_index = start_x_index.unwrap_or(0);
         let max_x_index = width.map(|width| (start_x_index + width).saturating_sub(1));
@@ -67,10 +105,7 @@ impl <'a>SixelSerializer <'a>{
         let mut current_line_index = start_y_index;
         let mut current_column_index = start_x_index;
         let mut color_index_to_sixel_data_string: BTreeMap<u16, String> = BTreeMap::new();
-        let max_lines = std::cmp::min(
-            height.unwrap_or(self.pixels.len()),
-            self.pixels.len(),
-        );
+        let max_lines = std::cmp::min(height.unwrap_or(self.pixels.len()), self.pixels.len());
         loop {
             let relative_column_index = current_column_index - start_x_index;
             let relative_line_index = current_line_index - start_y_index;
@@ -79,9 +114,11 @@ impl <'a>SixelSerializer <'a>{
                 current_column_index,
                 max_x_index,
                 max_y_index,
-                &self.pixels
-            ).map(|mut sixel_column| {
-                sixel_column.serialize(&mut color_index_to_sixel_data_string, relative_column_index);
+                &self.pixels,
+            )
+            .map(|mut sixel_column| {
+                sixel_column
+                    .serialize(&mut color_index_to_sixel_data_string, relative_column_index);
                 current_column_index += 1;
             })
             .or_else(|| {
@@ -90,7 +127,7 @@ impl <'a>SixelSerializer <'a>{
                     &mut append_to,
                     relative_line_index,
                     relative_column_index,
-                    max_lines
+                    max_lines,
                 )
                 .as_mut()
                 .map(|sixel_line| {
@@ -122,7 +159,7 @@ impl SixelColumn {
         absolute_column_index: usize,
         max_x_index: Option<usize>,
         max_y_index: Option<usize>,
-        pixels: &Vec<Vec<Pixel>>
+        pixels: &Vec<Vec<Pixel>>,
     ) -> Option<Self> {
         let mut empty_rows = 0;
         let mut color_index_to_byte = HashMap::new();
@@ -137,10 +174,9 @@ impl SixelColumn {
             }
         }
         let pixels_in_column = max_y_index
-            .map(|max_y_index| std::cmp::min(
-                max_y_index.saturating_sub(absolute_line_index) + 1,
-                6
-            ))
+            .map(|max_y_index| {
+                std::cmp::min(max_y_index.saturating_sub(absolute_line_index) + 1, 6)
+            })
             .unwrap_or(6);
         for i in 0..pixels_in_column {
             let pixel_at_current_position = pixels
@@ -161,7 +197,9 @@ impl SixelColumn {
         if row_ended {
             None
         } else {
-            Some(SixelColumn { color_index_to_byte })
+            Some(SixelColumn {
+                color_index_to_byte,
+            })
         }
     }
     fn serialize(
@@ -181,14 +219,19 @@ impl SixelColumn {
     }
 }
 
-struct SixelLine <'a>{
+struct SixelLine<'a> {
     append_to: &'a mut String,
     relative_line_index: usize, // line index inside cropped selection, or as part of total if not cropping
     line_length: usize,
 }
 
-impl <'a>SixelLine <'a>{
-    pub fn new(append_to: &'a mut String, relative_line_index: usize, relative_column_index: usize, max_lines: usize) -> Option<Self> {
+impl<'a> SixelLine<'a> {
+    pub fn new(
+        append_to: &'a mut String,
+        relative_line_index: usize,
+        relative_column_index: usize,
+        max_lines: usize,
+    ) -> Option<Self> {
         if relative_line_index >= max_lines {
             None
         } else {
@@ -215,9 +258,14 @@ impl <'a>SixelLine <'a>{
         }
         color_index_to_character_string.clear();
     }
-    fn serialize_one_or_more_sixel_characters (&mut self, character_occurrences: usize, character: char) {
+    fn serialize_one_or_more_sixel_characters(
+        &mut self,
+        character_occurrences: usize,
+        character: char,
+    ) {
         if character_occurrences > 2 {
-            self.append_to.push_str(&format!("!{}{}", character_occurrences, character));
+            self.append_to
+                .push_str(&format!("!{}{}", character_occurrences, character));
         } else {
             for _ in 0..character_occurrences {
                 self.append_to.push(character);
