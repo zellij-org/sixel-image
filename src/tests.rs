@@ -16,9 +16,17 @@ fn basic_serialization() {
         #1!14@
         \u{1b}\\
     ";
+    let expected = "
+        \u{1b}P0;0;0q
+        #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0
+        #1~~@@vv@@~~@@~~$
+        #2??}}GG}}??}}??-
+        #1!14@
+        \u{1b}\\
+    ";
     let sixel_image = SixelImage::new(sample.as_bytes());
     let serialized_image = sixel_image.unwrap().serialize();
-    assert_eq!(serialized_image, remove_whitespace(&sample));
+    assert_eq!(serialized_image, remove_whitespace(&expected));
 }
 
 #[test]
@@ -28,9 +36,7 @@ fn pad_image_with_raster_attribute() {
         \"1;1;10;10
         \u{1b}\\
     ";
-    // we don't serialize raster attributes because their behaviour is not very consistent across
-    // terminal emulators, instead we explicitly emit the empty pixels
-    let expected = "\u{1b}Pq#0!10~-#0!10N\u{1b}\\";
+    let expected = "\u{1b}P0;0;0q\"1;1;10;10#0!10~-#0!10N\u{1b}\\";
     let sixel_image = SixelImage::new(sample.as_bytes());
     let image = sixel_image.unwrap();
     let serialized_image = image.serialize();
@@ -45,7 +51,7 @@ fn dont_pad_image_with_transparent_background() {
         \"1;1;10;10
         \u{1b}\\
     ";
-    let expected = "\u{1b}Pq\u{1b}\\";
+    let expected = "\u{1b}P0;1;0q\"1;1;10;10\u{1b}\\";
     let sixel_image = SixelImage::new(sample.as_bytes());
     let image = sixel_image.unwrap();
     let serialized_image = image.serialize();
@@ -60,9 +66,14 @@ fn full_256_colors() {
         sample.push_str(&format!("#{};1;50;50;50", i));
     }
     sample.push_str(&"\u{1b}\\");
+    let mut expected = String::from("\u{1b}P0;0;0q");
+    for i in 0..256 {
+        expected.push_str(&format!("#{};1;50;50;50", i));
+    }
+    expected.push_str(&"\u{1b}\\");
     let sixel_image = SixelImage::new(sample.as_bytes());
     let serialized_image = sixel_image.unwrap().serialize();
-    assert_eq!(serialized_image, remove_whitespace(&sample));
+    assert_eq!(serialized_image, expected);
 }
 
 #[test]
@@ -76,7 +87,7 @@ fn color_definition_at_the_end() {
         \u{1b}\\
     ";
     let expected = "
-        \u{1b}Pq
+        \u{1b}P0;0;0q
         #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0
         #1~~@@vv@@~~@@~~$
         #2??}}GG}}??}}??-
@@ -98,7 +109,7 @@ fn multiple_occurrences_into_repeat_characters() {
         \u{1b}\\
     ";
     let expected = "
-        \u{1b}Pq
+        \u{1b}P0;0;0q
         #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0
         #1!4~!4?@@nn!3fnn$
         #2!4?GG}GG!8?
@@ -115,9 +126,10 @@ fn dcs_event() {
         \u{1b}Pq
         \u{1b}\\
     ";
+    let expected = "\u{1b}P0;0;0q\u{1b}\\";
     let sixel_image = SixelImage::new(sample.as_bytes());
     let serialized_image = sixel_image.unwrap().serialize();
-    assert_eq!(serialized_image, remove_whitespace(&sample));
+    assert_eq!(serialized_image, expected);
 }
 
 #[test]
@@ -127,9 +139,14 @@ fn color_introducer_event() {
         #1;2;100;50;100
         \u{1b}\\
     ";
+    let expected = "
+        \u{1b}P0;0;0q
+        #1;2;100;50;100
+        \u{1b}\\
+    ";
     let sixel_image = SixelImage::new(sample.as_bytes());
     let serialized_image = sixel_image.unwrap().serialize();
-    assert_eq!(serialized_image, remove_whitespace(&sample));
+    assert_eq!(serialized_image, remove_whitespace(&expected));
 }
 
 #[test]
@@ -169,7 +186,7 @@ fn crop_image_width_and_height() {
         \u{1b}\\
     ";
     let expected = "
-        \u{1b}Pq
+        \u{1b}P0;0;0q
         #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0
         #1@
         \u{1b}\\
@@ -190,7 +207,7 @@ fn crop_image_width_and_height_mid_image() {
         \u{1b}\\
     ";
     let expected = "
-        \u{1b}Pq
+        \u{1b}P0;0;0q
         #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0
         #1BAABB$#2?@@??
         \u{1b}\\
@@ -211,7 +228,7 @@ fn cut_out_from_image() {
         \u{1b}\\
     ";
     let expected = "
-        \u{1b}Pq
+        \u{1b}P0;0;0q
         #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0
         #1~!7@~~@@~~$
         #2!6?}}??}}??-

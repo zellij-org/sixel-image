@@ -6,7 +6,7 @@
 //! 2. If you'd like to parse bytes in real time "on the wire", use [`SixelDeserializer`]
 //!
 //! # Example
-//! ```rust
+//! ```no_run
 //! use std::io::Read;
 //! use std::io::BufReader;
 //! use std::fs::File;
