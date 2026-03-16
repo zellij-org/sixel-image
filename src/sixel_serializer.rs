@@ -1,22 +1,27 @@
 use std::collections::{HashMap, BTreeMap};
 
-use crate::{SixelColor, Pixel};
+use crate::{Pixel, SixelColor, DCS, RA};
 
 pub struct SixelSerializer <'a>{
+    dcs: &'a DCS,
+    ra: &'a Option<RA>,
     color_registers: &'a BTreeMap<u16, SixelColor>,
     pixels: &'a Vec<Vec<Pixel>>,
 }
 
 impl <'a>SixelSerializer <'a>{
-    pub fn new(color_registers: &'a BTreeMap<u16, SixelColor>, pixels: &'a Vec<Vec<Pixel>>) -> Self {
+    pub fn new(dcs: &'a DCS, ra: &'a Option<RA>, color_registers: &'a BTreeMap<u16, SixelColor>, pixels: &'a Vec<Vec<Pixel>>) -> Self {
         SixelSerializer {
+            dcs,
+            ra,
             color_registers,
             pixels
         }
     }
     pub fn serialize(&self) -> String {
         let serialized_image = String::new();
-        let serialized_image = self.serialize_empty_dcs(serialized_image);
+        let serialized_image = self.serialize_dcs(serialized_image);
+        let serialized_image = self.serialize_ra(serialized_image);
         let serialized_image = self.serialize_color_registers(serialized_image);
         let serialized_image = self.serialize_pixels(serialized_image, None, None, None, None);
         let serialized_image = self.serialize_end_event(serialized_image);
@@ -24,14 +29,25 @@ impl <'a>SixelSerializer <'a>{
     }
     pub fn serialize_range(&self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) -> String {
         let serialized_image = String::new();
-        let serialized_image = self.serialize_empty_dcs(serialized_image);
+        let serialized_image = self.serialize_dcs(serialized_image);
+        let serialized_image = self.serialize_ra(serialized_image);
         let serialized_image = self.serialize_color_registers(serialized_image);
         let serialized_image = self.serialize_pixels(serialized_image, Some(start_x_index), Some(start_y_index), Some(width), Some(height));
         let serialized_image = self.serialize_end_event(serialized_image);
         serialized_image
     }
-    fn serialize_empty_dcs(&self, mut append_to: String) -> String {
-        append_to.push_str("\u{1b}Pq");
+    fn serialize_dcs(&self, mut append_to: String) -> String {
+        append_to.push_str(&format!("\u{1b}P{mp};{bg};0q", mp = self.dcs.macro_parameter, bg = if self.dcs.transparent_bg {1} else {0}));
+        append_to
+    }
+    fn serialize_ra(&self, mut append_to: String) -> String {
+        if let Some(ra) = self.ra {
+            if let (Some(ph), Some(pv)) = (ra.ph, ra.pv) {
+                append_to.push_str(&format!("\"{pan};{pad};{ph};{pv}", pan = ra.pan, pad = ra.pad, ph = ph, pv = pv));
+            } else {
+                append_to.push_str(&format!("\"{pan};{pad};", pan = ra.pan, pad = ra.pad));   
+            }
+        }
         append_to
     }
     fn serialize_color_registers(&self, mut append_to: String) -> String {

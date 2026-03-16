@@ -2,10 +2,12 @@ use std::iter;
 use std::collections::BTreeMap;
 use sixel_tokenizer::SixelEvent;
 
-use crate::{SixelColor, SixelImage, Pixel};
+use crate::{Pixel, SixelColor, SixelImage, DCS, RA};
 
 #[derive(Debug, Clone)]
 pub struct SixelDeserializer {
+    dcs: DCS,
+    ra: Option<RA>,
     color_registers: BTreeMap<u16, SixelColor>,
     current_color: u16,
     sixel_cursor_y: usize,
@@ -14,12 +16,13 @@ pub struct SixelDeserializer {
     max_height: Option<usize>,
     stop_parsing: bool,
     got_dcs: bool,
-    transparent_background: bool,
 }
 
 impl SixelDeserializer {
     pub fn new() -> Self {
         SixelDeserializer {
+            dcs: DCS { macro_parameter: 0, transparent_bg: false },
+            ra: None,
             color_registers: BTreeMap::new(),
             current_color: 0, // this is totally undefined behaviour and seems like a free for all in general
             sixel_cursor_y: 0,
@@ -28,7 +31,6 @@ impl SixelDeserializer {
             max_height: None,
             stop_parsing: false,
             got_dcs: false,
-            transparent_background: false,
         }
     }
     /// Provide a `max_height` value in pixels, all pixels beyond this max height will not be
@@ -42,9 +44,13 @@ impl SixelDeserializer {
         if !self.got_dcs {
             return Err("Corrupted image sequence");
         }
+        let dcs = std::mem::take(&mut self.dcs);
+        let ra = std::mem::take(&mut self.ra);
         let pixels = std::mem::take(&mut self.pixels);
         let color_registers = std::mem::take(&mut self.color_registers);
         Ok(SixelImage {
+            dcs,
+            ra,
             pixels,
             color_registers,
         })
@@ -71,9 +77,8 @@ impl SixelDeserializer {
                     }
                 }
             }
-            SixelEvent::RasterAttribute { pan: _, pad: _, ph, pv } => {
-                // we ignore pan/pad because (reportedly) no-one uses them
-                if !self.transparent_background {
+            SixelEvent::RasterAttribute { pan, pad, ph, pv } => {
+                if !self.dcs.transparent_bg {
                     if let Some(pv) = pv {
                         self.pad_lines_vertically(pv);
                     }
@@ -81,6 +86,12 @@ impl SixelDeserializer {
                         self.pad_lines_horizontally(ph);
                     }
                 }
+                self.ra = Some(RA {
+                    pan,
+                    pad,
+                    ph,
+                    pv,
+                });
             }
             SixelEvent::Data { byte } => {
                 self.make_sure_six_lines_exist_after_cursor();
@@ -92,10 +103,13 @@ impl SixelDeserializer {
                 self.add_sixel_byte(byte_to_repeat, repeat_count);
                 self.sixel_cursor_x += repeat_count;
             }
-            SixelEvent::Dcs { macro_parameter: _, transparent_background, horizontal_pixel_distance: _ } => {
+            SixelEvent::Dcs { macro_parameter, transparent_background, horizontal_pixel_distance: _ } => {
                 self.got_dcs = true;
+                if let Some(mp) = macro_parameter {
+                    self.dcs.macro_parameter = mp;
+                }
                 if transparent_background == Some(1) {
-                    self.transparent_background = true;
+                    self.dcs.transparent_bg = true;
                 }
             }
             SixelEvent::GotoBeginningOfLine => {

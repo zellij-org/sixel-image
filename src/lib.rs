@@ -35,8 +35,30 @@ use sixel_tokenizer::{ColorCoordinateSystem, Parser};
 
 #[derive(Debug, Clone)]
 pub struct SixelImage {
+    dcs: DCS,
+    ra: Option<RA>,
     color_registers: BTreeMap<u16, SixelColor>,
     pixels: Vec<Vec<Pixel>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DCS {
+    macro_parameter: u8,
+    transparent_bg: bool,
+}
+
+impl Default for DCS {
+    fn default() -> Self { 
+        DCS{ macro_parameter: 0, transparent_bg: false }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RA {
+    pan: usize,
+    pad: usize,
+    ph: Option<usize>,
+    pv: Option<usize>,
 }
 
 impl SixelImage {
@@ -62,14 +84,14 @@ impl SixelImage {
     }
     /// Serializes the whole image, returning a stringified sixel representation of it
     pub fn serialize(&self) -> String {
-        let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels);
+        let sixel_serializer = SixelSerializer::new(&self.dcs, &self.ra, &self.color_registers, &self.pixels);
         let serialized_image = sixel_serializer.serialize();
         serialized_image
     }
     /// Serializes a specific rectangle of this image without manipulating the image itself, x/y
     /// coordinates as well as width height are in pixels
     pub fn serialize_range(&self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) -> String {
-        let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels);
+        let sixel_serializer = SixelSerializer::new(&self.dcs, &self.ra, &self.color_registers, &self.pixels);
         let serialized_image = sixel_serializer.serialize_range(start_x_index, start_y_index, width, height);
         serialized_image
     }
