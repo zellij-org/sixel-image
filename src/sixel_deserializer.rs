@@ -1,6 +1,6 @@
-use std::iter;
-use std::collections::BTreeMap;
 use sixel_tokenizer::SixelEvent;
+use std::collections::BTreeMap;
+use std::iter;
 
 use crate::{Pixel, SixelColor, SixelImage, DCS, RA};
 
@@ -21,7 +21,10 @@ pub struct SixelDeserializer {
 impl SixelDeserializer {
     pub fn new() -> Self {
         SixelDeserializer {
-            dcs: DCS { macro_parameter: 0, transparent_bg: false },
+            dcs: DCS {
+                macro_parameter: 0,
+                transparent_bg: false,
+            },
             ra: None,
             color_registers: BTreeMap::new(),
             current_color: 0, // this is totally undefined behaviour and seems like a free for all in general
@@ -64,13 +67,16 @@ impl SixelDeserializer {
             return Ok(());
         }
         match event {
-            SixelEvent::ColorIntroducer { color_coordinate_system, color_number } => {
+            SixelEvent::ColorIntroducer {
+                color_coordinate_system,
+                color_number,
+            } => {
                 match color_coordinate_system {
                     Some(color_coordinate_system) => {
                         // define a color in a register
                         let color = SixelColor::from(color_coordinate_system);
                         self.color_registers.insert(color_number, color);
-                    },
+                    }
                     None => {
                         // switch to register number
                         self.current_color = color_number;
@@ -86,24 +92,26 @@ impl SixelDeserializer {
                         self.pad_lines_horizontally(ph);
                     }
                 }
-                self.ra = Some(RA {
-                    pan,
-                    pad,
-                    ph,
-                    pv,
-                });
+                self.ra = Some(RA { pan, pad, ph, pv });
             }
             SixelEvent::Data { byte } => {
                 self.make_sure_six_lines_exist_after_cursor();
                 self.add_sixel_byte(byte, 1);
                 self.sixel_cursor_x += 1;
             }
-            SixelEvent::Repeat { repeat_count, byte_to_repeat } => {
+            SixelEvent::Repeat {
+                repeat_count,
+                byte_to_repeat,
+            } => {
                 self.make_sure_six_lines_exist_after_cursor();
                 self.add_sixel_byte(byte_to_repeat, repeat_count);
                 self.sixel_cursor_x += repeat_count;
             }
-            SixelEvent::Dcs { macro_parameter, transparent_background, horizontal_pixel_distance: _ } => {
+            SixelEvent::Dcs {
+                macro_parameter,
+                transparent_background,
+                horizontal_pixel_distance: _,
+            } => {
                 self.got_dcs = true;
                 if let Some(mp) = macro_parameter {
                     self.dcs.macro_parameter = mp;
@@ -117,7 +125,8 @@ impl SixelDeserializer {
             }
             SixelEvent::GotoNextLine => {
                 if let Some(max_height) = self.max_height {
-                    if self.sixel_cursor_y + 12 > max_height { // 12 because we move the cursor to the top of the sixel column and need to count 6 more down to make sure we don't exceed
+                    if self.sixel_cursor_y + 12 > max_height {
+                        // 12 because we move the cursor to the top of the sixel column and need to count 6 more down to make sure we don't exceed
                         self.stop_parsing = true;
                         return Ok(());
                     }
@@ -141,16 +150,19 @@ impl SixelDeserializer {
     fn add_sixel_byte(&mut self, byte: u8, repeat_count: usize) {
         let mut pixel_line_index_in_sixel = 0;
         for bit in SixelPixelIterator::new(byte.saturating_sub(63)) {
-            let current_line = self.pixels.get_mut(self.sixel_cursor_y + pixel_line_index_in_sixel).unwrap();
+            let current_line = self
+                .pixels
+                .get_mut(self.sixel_cursor_y + pixel_line_index_in_sixel)
+                .unwrap();
             let new_pixel = Pixel {
                 on: bit,
-                color: self.current_color
+                color: self.current_color,
             };
             for i in 0..repeat_count {
                 match current_line.get_mut(self.sixel_cursor_x + i) {
                     Some(pixel_in_current_position) if bit => {
                         let _ = std::mem::replace(pixel_in_current_position, new_pixel);
-                    },
+                    }
                     None => {
                         current_line.push(new_pixel);
                     }
@@ -163,7 +175,7 @@ impl SixelDeserializer {
     fn pad_lines_vertically(&mut self, pad_until: usize) {
         let empty_pixel = Pixel {
             on: true,
-            color: self.current_color
+            color: self.current_color,
         };
         if self.pixels.len() < pad_until {
             let empty_line = vec![empty_pixel; pad_until];
@@ -175,7 +187,7 @@ impl SixelDeserializer {
     fn pad_lines_horizontally(&mut self, pad_until: usize) {
         let empty_pixel = Pixel {
             on: true,
-            color: self.current_color
+            color: self.current_color,
         };
         for pixel_line in self.pixels.iter_mut() {
             if pixel_line.len() < pad_until {
@@ -194,7 +206,10 @@ struct SixelPixelIterator {
 }
 impl SixelPixelIterator {
     pub fn new(sixel_byte: u8) -> Self {
-        SixelPixelIterator { sixel_byte, current_mask: 1 }
+        SixelPixelIterator {
+            sixel_byte,
+            current_mask: 1,
+        }
     }
 }
 impl Iterator for SixelPixelIterator {
@@ -211,4 +226,3 @@ impl Iterator for SixelPixelIterator {
         }
     }
 }
-
