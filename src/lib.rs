@@ -106,8 +106,14 @@ impl SixelImage {
         width: usize,
         height: usize,
     ) -> String {
+        let adjusted_ra = self.ra.as_ref().map(|ra| RA {
+            pan: ra.pan,
+            pad: ra.pad,
+            ph: Some(width),
+            pv: Some(height),
+        });
         let sixel_serializer =
-            SixelSerializer::new(&self.dcs, &self.ra, &self.color_registers, &self.pixels);
+            SixelSerializer::new(&self.dcs, &adjusted_ra, &self.color_registers, &self.pixels);
         let serialized_image =
             sixel_serializer.serialize_range(start_x_index, start_y_index, width, height);
         serialized_image

@@ -253,3 +253,21 @@ fn corrupted_image() {
     ";
     assert!(SixelImage::new(sample.as_bytes()).is_err());
 }
+
+#[test]
+fn serialize_range_adjusts_raster_attributes() {
+    let sample = "\u{1b}Pq\"1;1;100;100#0;2;0;0;0#1;2;100;100;0#1~~@@vv@@~~@@~~$#1??}}GG}}??}}??-#1!14@\u{1b}\\";
+    let sixel_image = SixelImage::new(sample.as_bytes()).unwrap();
+    let serialized = sixel_image.serialize_range(0, 0, 10, 10);
+    // RA should reflect the sub-range dimensions (10x10), not the original (100x100)
+    assert!(
+        serialized.contains("\"1;1;10;10"),
+        "Expected RA with sub-range dimensions 10x10, got: {}",
+        serialized
+    );
+    assert!(
+        !serialized.contains("\"1;1;100;100"),
+        "RA should not contain original image dimensions 100x100, got: {}",
+        serialized
+    );
+}
