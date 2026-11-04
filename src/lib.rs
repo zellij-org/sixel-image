@@ -65,6 +65,16 @@ pub struct RA {
 }
 
 impl SixelImage {
+    /// Constructs a new `SixelImage` out of color registers and rows of pixels, with default DCS and no raster attributes
+    pub fn from_parts(color_registers: BTreeMap<u16, SixelColor>, pixels: Vec<Vec<Pixel>>) -> Self {
+        SixelImage {
+            color_registers,
+            pixels,
+            dcs: DCS::default(),
+            ra: None,
+        }
+    }
+
     /// Constructs a new `SixelImage` out of an existing slice of serialized sixel bytes
     pub fn new(bytes: &[u8]) -> Result<Self, &'static str> {
         let mut parser = Parser::new();
