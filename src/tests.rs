@@ -1,4 +1,5 @@
-use crate::SixelImage;
+use crate::{Pixel, SixelColor, SixelImage};
+use std::collections::BTreeMap;
 
 fn remove_whitespace(s: &str) -> String {
     let mut s = s.to_string();
@@ -270,4 +271,14 @@ fn serialize_range_adjusts_raster_attributes() {
         "RA should not contain original image dimensions 100x100, got: {}",
         serialized
     );
+}
+
+#[test]
+fn from_parts_serialization() {
+    let mut color_registers = BTreeMap::new();
+    color_registers.insert(0, SixelColor::Rgb(100, 0, 0));
+    let pixels = vec![vec![Pixel { on: true, color: 0 }; 2]];
+    let image = SixelImage::from_parts(color_registers, pixels);
+    let expected = "\u{1b}P0;0;0q#0;2;100;0;0#0@@\u{1b}\\";
+    assert_eq!(image.serialize(), expected);
 }
